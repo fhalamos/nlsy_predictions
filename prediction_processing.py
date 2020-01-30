@@ -10,7 +10,7 @@ def read(file):
     '''
     Read in training data.
     '''
-    df = pd.read_csv(file)#.head(20)
+    df = pd.read_csv(file).head(20)
 
     return df
 
@@ -97,17 +97,27 @@ def prepare_train_test():
     test_ids = test.id.to_list()
 
 
-    # Step 1: School enrollment variables
-    print("# Step 1: School enrollment variables")
-    school_enrollment = train.loc[:, 'E5011701':'E5012905']
+    # Must be fixed
+
+    # Step 1: Default 
+    school_enrollment_variables = 'E5011701:E5012905'
+    school_ids_variables = 'E5031701:E5032903'
+
+    all_variables = school_enrollment_variables +", "+ school_ids_variables
+
+    school_enrollment = train.loc[:, all_variables]
     school_enrollment_cols = list(school_enrollment.columns)
     for col in school_enrollment_cols:
         train, categories = create_dummies(train, col)
         test = create_dummies_test(test, col, categories)
 
-    # Step 2: School type variables (extract first two digits)
-    print("# Step 2: School type variables (extract first two digits)")
-    school_type = train.loc[:, 'E5021701':'E5022903']
+    # Step 2: Varibales that need only first 2 digits to be considered
+    
+    school_type_variables = ['E5021701':'E5022903']
+
+    all_variables = school_type_variables #+...
+
+    school_type = train.loc[:, all_variables]
     school_type_cols = list(school_type.columns)
     for col in school_type_cols:
         train[col] = train[col].apply(lambda x: (x // 10 **
@@ -119,19 +129,6 @@ def prepare_train_test():
         train, categories = create_dummies(train, col)
         test = create_dummies_test(test, col, categories)
 
-    # Step 3: School ID (extract first two digits)
-    print("# Step 3: School ID (extract first two digits)")
-    school_id = train.loc[:, 'E5031701':'E5032903']
-    school_id_cols = list(school_id)
-    for col in school_id_cols:
-        train[col] = train[col].apply(lambda x: (x // 10 **
-                                     (int(math.log(x, 10)) - 1)
-                                     if x > 0 else x))
-        test[col] = test[col].apply(lambda x: (x // 10 **
-                                    (int(math.log(x, 10)) - 1)
-                                    if x > 0 else x))
-        train, categories = create_dummies(train, col)
-        test = create_dummies_test(test, col, categories)
 
 
 
