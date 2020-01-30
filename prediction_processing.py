@@ -10,7 +10,7 @@ def read(file):
     '''
     Read in training data.
     '''
-    df = pd.read_csv(file)
+    df = pd.read_csv(file)#.head(20)
 
     return df
 
@@ -47,10 +47,9 @@ def create_dummies(x_train, feature):
     dummies = pd.get_dummies(x_train[feature], prefix=feature)
     x_train = pd.concat([x_train, dummies], axis=1)
     x_train.drop([feature], axis=1, inplace=True)
+
     # Set up temporary 'other' column to account for test data
-    other_col = feature + '_' + 'Other'
-    if other_col not in x_train.columns:
-        x_train[other_col] = 0
+    x_train[feature + '_' + 'Other'] = 0
 
     return x_train, categories
 
@@ -84,15 +83,22 @@ def prepare_train_test():
     '''
 
     # Import and perform basic cleaning
+    print("Reading data...")
     x_train = read('nlsy_training_set.csv')
     x_test = read('nlsy_test_set.csv')
+
+    print("Cleaning...")
     x_train_data = clean_data(x_train)
     x_test_data = clean_data(x_test)
-    train = p.drop_nonresponse_y(x_train_data)
+
+    train = drop_nonresponse_y(x_train_data)
+
     test = x_test_data
     test_ids = test.id.to_list()
 
+
     # Step 1: School enrollment variables
+    print("# Step 1: School enrollment variables")
     school_enrollment = train.loc[:, 'E5011701':'E5012905']
     school_enrollment_cols = list(school_enrollment.columns)
     for col in school_enrollment_cols:
@@ -100,6 +106,7 @@ def prepare_train_test():
         test = create_dummies_test(test, col, categories)
 
     # Step 2: School type variables (extract first two digits)
+    print("# Step 2: School type variables (extract first two digits)")
     school_type = train.loc[:, 'E5021701':'E5022903']
     school_type_cols = list(school_type.columns)
     for col in school_type_cols:
@@ -113,6 +120,7 @@ def prepare_train_test():
         test = create_dummies_test(test, col, categories)
 
     # Step 3: School ID (extract first two digits)
+    print("# Step 3: School ID (extract first two digits)")
     school_id = train.loc[:, 'E5031701':'E5032903']
     school_id_cols = list(school_id)
     for col in school_id_cols:
@@ -125,6 +133,11 @@ def prepare_train_test():
         train, categories = create_dummies(train, col)
         test = create_dummies_test(test, col, categories)
 
+
+
+    train.drop(columns=['id'], inplace=True)
+    test.drop(columns=['id'], inplace=True)
+
     return train, test, test_ids
 
 def go():
@@ -133,5 +146,6 @@ def go():
     '''
     ## Need to go back and continue descretizing nominal variables
     ## Need to go back and engineer new features
-    train, test, test_ids = prepare_train_test()
+    
+    return prepare_train_test()
     ## For now, assume these datasets are "ready to go"
