@@ -42,15 +42,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-# TO-DOs:
-
-# -fix all categorical features (careful features with mixture of categorical and continuous)
-
-# -research best parameters_grid
-
-# -research more regression models
-
-# -feature engineering (group related variables?)
