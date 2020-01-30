@@ -69,10 +69,14 @@ def find_best_model(models, parameters_grid, data, predictors, outcome_label):
     print(results_df)
 
     #Train best model with all data and return it
-    best_model.set_params(**best_p)
+    best_model.set_params(**best_p) #Remember to set best parameters again, cause it could be set with newer but not optimal ones
     best_model.fit(data[predictors], data[outcome_label])
 
     return best_model
+
+def run_predictions_on_test(best_model, test_data):
+
+    return best_model.predict(test_data) 
 
 def main():
 
@@ -90,24 +94,30 @@ def main():
         'RFR':{'max_depth':[5,10]}
     }
 
+    training_data = pd.read_csv("nlsy training set")
 
-    data = pd.read_csv("nlsy training set")
-
-    #In the meantime, must be removed, using it for iterating fast
-    #>>>>>>>
-    data = data.head(200) 
-
+#>>>>>>> In the meantime, must be removed, using it for iterating fast
+    training_data = training_data.head(200) 
 
     outcome_label = 'U1031900'
 
-    predictors = data.columns.to_list()
+    predictors = training_data.columns.to_list()
     predictors.remove(outcome_label)
     predictors.remove('diag.id')
     predictors.remove('Unnamed: 0')
 
-    best_model = find_best_model(models, parameters_grid, data, predictors, outcome_label)
+    best_model = find_best_model(models, parameters_grid, training_data, predictors, outcome_label)
 
-    #To Be Done: run_predictions_on_test()
+
+    #Run predictions on test data and save file
+    test_data = pd.read_csv("nlsy test set")
+    diag_ids = test_data['diag.id'].to_list()
+    test_data.drop(columns=['diag.id', 'Unnamed: 0'], inplace=True)
+
+    y_hats = run_predictions_on_test(best_model, test_data)
+
+    results  = pd.DataFrame(list(zip(diag_ids, y_hats)), columns =['diag_id', 'y_hat']) 
+    results.to_csv('results.csv', index=False)
 
 main()
 
