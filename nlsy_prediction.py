@@ -20,10 +20,10 @@ def find_best_model(models, parameters_grid, data, predictors, outcome_label):
     results_df =  pd.DataFrame(columns=(
       'model_name',
       'parameters',
-      'auc-roc',
+      'MSE',
       'time_to_run'))
 
-    max_auc = 0
+    min_mse = float('inf')
     best_model=""
     best_model_key=""
     best_p=""
@@ -43,22 +43,18 @@ def find_best_model(models, parameters_grid, data, predictors, outcome_label):
 
             model.set_params(**p)
 
-            #Calculate auc using cross validation
-            scores = cross_val_score(model, data[predictors], data[outcome_label], cv=5)#, scoring='roc_auc')
+            #Calculate mean square error using cross validation
+            #Changing signs because scoring used is neg_mean_squared_error
+            scores = -cross_val_score(model, data[predictors], data[outcome_label], cv=5, scoring='neg_mean_squared_error')
 
-            auc = scores.mean()
+            mse = scores.mean()
 
             time = timeit.default_timer() - s
 
-            #X_train, X_test, y_train, y_test = train_test_split(data[predictors], data[outcome_label],
-            #    test_size=0.25, random_state=0)
+            results_df.loc[len(results_df)] = [model_key, p, mse, time]
 
-            #y_pred_probs = clf.fit(X_train, y_train).predict_proba(X_test)[:,1]
-
-            results_df.loc[len(results_df)] = [model_key, p, auc, time]
-
-            if(auc > max_auc):
-                max_auc = auc
+            if(mse < min_mse):
+                min_mse = mse
                 best_model = model
                 best_p = p
                 best_model_key = model_key
@@ -66,7 +62,7 @@ def find_best_model(models, parameters_grid, data, predictors, outcome_label):
         elapsed = timeit.default_timer() - start_time
 
 
-    print("Best Score "+str(max_auc))
+    print("Best Score "+str(min_mse))
     print("Best Model "+str(best_model))
     print('run_models_serial_parameters_parallel time:', elapsed)
 
@@ -112,7 +108,6 @@ def main():
     best_model = find_best_model(models, parameters_grid, data, predictors, outcome_label)
 
     #To Be Done: run_predictions_on_test()
-
 
 main()
 
