@@ -99,6 +99,7 @@ def prepare_train_test():
 
     # Must be fixed
 
+    '''
     # Step 1: Default 
     school_enrollment_variables = 'E5011701:E5012905'
     school_ids_variables = 'E5031701:E5032903'
@@ -128,9 +129,7 @@ def prepare_train_test():
                                     if x > 0 else x))
         train, categories = create_dummies(train, col)
         test = create_dummies_test(test, col, categories)
-
-
-
+    '''
 
     train.drop(columns=['id'], inplace=True)
     test.drop(columns=['id'], inplace=True)
