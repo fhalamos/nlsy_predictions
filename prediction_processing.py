@@ -116,6 +116,19 @@ def expand_column_names(train, all_variables):
 
     return lst
 
+def discretize_columns(train_data, test_data, columns_to_discretize):
+
+    for c in columns_to_discretize:
+        
+        print(train_data[c])
+
+        #We use qcut instead of cut because of outliers (if not, in case of high outlieres, almost all datapoints end up in lowest bin and none in the middle ones)
+        train_data[c+'_discrete'], bins = pd.qcut(train_data[c], 5, labels=['low', 'medium_low', 'medium', 'medium_high', 'high'], retbins=True, duplicates='drop')
+
+        #Use same bins of train to discretize on test
+        test_data[c+'_discrete'] = pd.cut(test_data[c], bins=bins, labels=['low', 'medium_low', 'medium', 'medium_high', 'high'], include_lowest=True)
+
+    return train_data, test_data
 
 def prepare_train_test():
     '''
@@ -140,6 +153,16 @@ def prepare_train_test():
 
     train_data = drop_useless_columns(train_data,columns_to_drop)
     test_data = drop_useless_columns(test_data,columns_to_drop)
+
+    #Convert all negatives values to -1, np.nan
+    train_data.replace([-1,-2,-3,-4,-5], -1, inplace=True)
+
+    #Discretize continuous variables
+    range_columns_to_discretize = get_range_columns_for_features('pure_continuous')
+    columns_to_discretize = expand_column_names(train_data, range_columns_to_discretize)
+
+    # train_data, test_data = discretize_columns(train_data, test_data, columns_to_discretize)
+    
 
 
     # Step 1: categorical, no mode, dummies 
