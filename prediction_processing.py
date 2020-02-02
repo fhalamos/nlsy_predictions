@@ -12,11 +12,11 @@ def read(file):
     '''
     Read in training data.
     '''
-    df = pd.read_csv(file).head(20)
+    df = pd.read_csv(file).head(200)
 
     return df
 
-def clean_data(dataframe):
+def format_id_and_label_columns(dataframe):
     '''
     Rename unique id column, drop duplicate id column,
     and specify the training label.
@@ -87,7 +87,7 @@ def drop_useless_columns(df,columns_to_drop):
 # def find_mode_per_year(df, columns_to_aggregate):
 #     for col in columns_to_aggregate:
 
-def get_columns_for_features(columns_category):
+def get_range_columns_for_features(columns_category):
     config = yaml.load(open('config.yaml', 'r'))#, Loader=yaml.SafeLoader)
 
     list_to_return = []
@@ -99,7 +99,7 @@ def get_columns_for_features(columns_category):
     # return config[columns_category]
 
 
-def return_column_names(train, all_variables):
+def expand_column_names(train, all_variables):
     '''
     Train: training dataframe
     col_list: list of all variables and intervals of interest
@@ -123,24 +123,25 @@ def prepare_train_test():
     '''
     # Import and perform basic cleaning
     print("Reading data...")
-    x_train = read('nlsy_training_set.csv')
-    x_test = read('nlsy_test_set.csv')
+    train_data = read('nlsy_training_set.csv')
+    test_data = read('nlsy_test_set.csv')
 
     print("Cleaning...")
-    x_train_data = clean_data(x_train)
-    x_test_data = clean_data(x_test)
-    train = drop_nonresponse_y(x_train_data)
-    test = x_test_data
-    test_ids = test.id.to_list()
+    train_data = format_id_and_label_columns(train_data)
+    test_data = format_id_and_label_columns(test_data)
+
+    train_data = drop_nonresponse_y(train_data)
+    test_ids = test_data.id.to_list()
 
     # Step 1: categorical, no mode, dummies 
     print("Categorical, no mode, dummies")
-    all_variables = [a, b, c, d, e] ## this is where we put our list of vars
-    all_variables_list = return_column_names(train, all_variables)
-    
-    for col in all_variables_list:
-        train, categories = create_dummies(train, col)
-        test = create_dummies_test(test, col, categories)
+    range_columns_for_features = get_range_columns_for_features('pure_categorical')#[a, b, c, d, e] ## this is where we put our list of vars
+
+    columns_for_features = expand_column_names(train_data, range_columns_for_features)
+
+    for col in columns_for_features:
+        train_data, categories = create_dummies(train_data, col)
+        test_data = create_dummies_test(test_data, col, categories)
 
     '''
     # Step 2: categorical, first two digits, find mode, dummies:
@@ -161,10 +162,10 @@ def prepare_train_test():
         test = create_dummies_test(test, col, categories)
     '''
 
-    train.drop(columns=['id'], inplace=True)
-    test.drop(columns=['id'], inplace=True)
+    train_data.drop(columns=['id'], inplace=True)
+    test_data.drop(columns=['id'], inplace=True)
 
-    return train, test, test_ids
+    return train_data, test_data, test_ids
 
 def go():
     '''
