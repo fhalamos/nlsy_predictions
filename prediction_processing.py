@@ -97,6 +97,37 @@ def return_column_names(train, all_variables):
     return lst
 
 
+def find_mode_per_year(data, all_variables_list):
+    '''
+    For each column and year, creates a single column containing the mode
+    value for that year (across all months). Drops the original columns,
+    and concatenates this information to the new dataframe.
+    '''
+
+    new_cols = []
+    df = pd.DataFrame()
+    # Groups variables by the first 4 characters indicating same question
+    d = {}
+    for word in all_variables_list:
+        d.setdefault(word[:4], []).append(word)
+    grouped_list = list(d.values())
+    for topic in grouped_list:
+        # Group variables by year now that we are looking at a single question
+        e = {}
+        for word in topic:
+            e.setdefault(word[4:6], []).append(word)
+        year_grouped_list = list(e.values())
+        for year in year_grouped_list:
+            temp_data = data[year]
+            mode = temp_data.mode(axis=1)[[0]]
+            mode = mode.rename(columns = {0: year[0]})
+            data = data.drop(columns=year)
+            data = pd.concat([data, mode], axis=1)
+            new_cols.append(year[0])
+
+    return data, new_cols
+
+
 def prepare_train_test():
     '''
     Clean and prepare train and test sets.
@@ -119,6 +150,15 @@ def prepare_train_test():
     all_variables_list = return_column_names(train, all_variables)
     
     for col in all_variables_list:
+        train, categories = create_dummies(train, col)
+        test = create_dummies_test(test, col, categories)
+
+    # Step 2: categorical, mode, dummies
+    all_variables = [['E5011701', 'E5012905'], ['E5031701', 'E5032903']]
+    all_variables_list = return_column_names(train, all_variables)
+    train, new_cols = find_mode_per_year(train, all_variables_list)
+
+    for col in new_cols:
         train, categories = create_dummies(train, col)
         test = create_dummies_test(test, col, categories)
 
