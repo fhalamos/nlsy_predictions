@@ -73,6 +73,7 @@ def create_dummies_test(x_test, feature, categories):
 
     return x_test
 
+
 def engineering(df):
     '''
     Add features together with similarities
@@ -97,11 +98,29 @@ def get_columns_for_features(columns_category):
     return list_to_return
     # return config[columns_category]
 
+
+def return_column_names(train, all_variables):
+    '''
+    Train: training dataframe
+    col_list: list of all variables and intervals of interest
+    '''
+    lst = []
+    for var in all_variables:
+        if len(var) == 1:
+            cols = list(train.loc[:, var].columns)
+        else:
+            var0 = var[0]
+            var1 = var[1]
+            cols = list(train.loc[:, var0:var1].columns)
+        lst = lst + cols
+
+    return lst
+
+
 def prepare_train_test():
     '''
     Clean and prepare train and test sets.
     '''
-
     # Import and perform basic cleaning
     print("Reading data...")
     x_train = read('nlsy_training_set.csv')
@@ -110,36 +129,27 @@ def prepare_train_test():
     print("Cleaning...")
     x_train_data = clean_data(x_train)
     x_test_data = clean_data(x_test)
-
     train = drop_nonresponse_y(x_train_data)
-
     test = x_test_data
     test_ids = test.id.to_list()
 
-
-    # Must be fixed
-
-    '''
-    # Step 1: Default 
-    school_enrollment_variables = 'E5011701:E5012905'
-    school_ids_variables = 'E5031701:E5032903'
-
-    all_variables = school_enrollment_variables +", "+ school_ids_variables
-
-    school_enrollment = train.loc[:, all_variables]
-    school_enrollment_cols = list(school_enrollment.columns)
-    for col in school_enrollment_cols:
+    # Step 1: categorical, no mode, dummies 
+    print("Categorical, no mode, dummies")
+    all_variables = [a, b, c, d, e] ## this is where we put our list of vars
+    all_variables_list = return_column_names(train, all_variables)
+    
+    for col in all_variables_list:
         train, categories = create_dummies(train, col)
         test = create_dummies_test(test, col, categories)
 
-    # Step 2: Varibales that need only first 2 digits to be considered
-    
-    school_type_variables = ['E5021701':'E5022903']
+    '''
+    # Step 2: categorical, first two digits, find mode, dummies:
+    # This isn't ready because doesn't find the mode
 
-    all_variables = school_type_variables #+...
+    print("Categorical, no mode, dummies")
+    all_variables = [a, b, c, d, e] ## this is where we put our list of vars
+    all_variables_list = return_column_names(train, all_variables) 
 
-    school_type = train.loc[:, all_variables]
-    school_type_cols = list(school_type.columns)
     for col in school_type_cols:
         train[col] = train[col].apply(lambda x: (x // 10 **
                                      (int(math.log(x, 10)) - 1)
