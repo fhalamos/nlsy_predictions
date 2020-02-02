@@ -133,6 +133,16 @@ def prepare_train_test():
     train_data = drop_nonresponse_y(train_data)
     test_ids = test_data.id.to_list()
 
+
+    #Drop
+    # print(train_data.shape)
+    # range_columns_to_drop = get_range_columns_for_features('to_drop')
+    # columns_to_drop = expand_column_names(train_data, range_columns_to_drop)
+
+    # train_data = drop_useless_columns(train_data,columns_to_drop)
+    # test_data = drop_useless_columns(test_data,columns_to_drop)
+    # print(train_data.shape)
+
     # Step 1: categorical, no mode, dummies 
     print("Categorical, no mode, dummies")
     range_columns_for_features = get_range_columns_for_features('pure_categorical')#[a, b, c, d, e] ## this is where we put our list of vars
