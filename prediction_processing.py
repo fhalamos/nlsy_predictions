@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 import math
 
+import yaml
+
 
 def read(file):
     '''
@@ -77,6 +79,24 @@ def engineering(df):
     '''
     pass
 
+def drop_useless_columns(df,columns_to_drop):
+
+    return df.drop(columns_to_drop, axis=1)
+
+# def find_mode_per_year(df, columns_to_aggregate):
+#     for col in columns_to_aggregate:
+
+def get_columns_for_features(columns_category):
+    config = yaml.load(open('config.yaml', 'r'))#, Loader=yaml.SafeLoader)
+
+    list_to_return = []
+
+    for c in config[columns_category]:
+        list_to_return.append(config[columns_category][c])
+
+    return list_to_return
+    # return config[columns_category]
+
 def prepare_train_test():
     '''
     Clean and prepare train and test sets.
@@ -142,6 +162,6 @@ def go():
     '''
     ## Need to go back and continue descretizing nominal variables
     ## Need to go back and engineer new features
-    
+
     return prepare_train_test()
     ## For now, assume these datasets are "ready to go"
