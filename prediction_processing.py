@@ -8,6 +8,9 @@ import math
 import yaml
 
 
+from sklearn.decomposition import PCA
+
+
 def read(file):
     '''
     Read in training data.
@@ -26,6 +29,13 @@ def format_id_and_label_columns(dataframe):
     dataframe.drop(columns=['diag.id'], inplace=True)
 
     return dataframe
+
+def drop_outliers_on_y(dataframe):
+
+    index_nums = dataframe[dataframe.label > 15].index
+    small_data = dataframe.drop(index_nums)
+
+    return small_data
 
 def drop_nonresponse_y(dataframe):
     '''
@@ -212,6 +222,9 @@ def prepare_train_test():
     test_data = format_id_and_label_columns(test_data)
 
     train_data = drop_nonresponse_y(train_data)
+
+    train_data = drop_outliers_on_y(train_data)
+
     test_ids = test_data.id.to_list()
 
     #Drop useless columns
@@ -273,34 +286,28 @@ def prepare_train_test():
 
 
 
-    print(train_data.shape)
-    print(test_data.shape)
+    from sklearn.preprocessing import StandardScaler
+
+    scaler = StandardScaler()
+    cont_var = continuous_alcohol_variables + continuous_variables
+    train_data[cont_var] = scaler.fit_transform(train_data[cont_var])
+    test_data[cont_var] = scaler.transform(test_data[cont_var])
 
 
 
-    # #Discretize numerical alcoholic variables - I do not observe impruevements when doing this so will avoid it for now on..
+    label_column = train_data['label'].to_list()
 
-    # print(train_data.shape)
-    # print(train_data.columns)
-    # train_data, test_data, new_discrete_columns = discretize_columns(train_data, test_data, continuous_alcohol_variables)
-    # print(train_data.shape)
-    # print(train_data.columns)
-    # train_data.replace(np.nan, -1, inplace=True)
-    # test_data.replace(np.nan, -1, inplace=True)
-    # for col in new_discrete_columns:
-    #     train_data, categories = create_dummies(train_data, col)
-    #     test_data = create_dummies_test(test_data, col, categories)
-
-    # print(train_data.shape)
-    # print(train_data.columns)    
+    train_data.drop(columns='label', inplace=True)
 
 
+    pca = PCA(n_components=40)
+    train_data = pd.DataFrame(pca.fit_transform(train_data))
+    test_data = pd.DataFrame(pca.transform(test_data))
 
 
+    train_data['label'] = label_column
 
 
-
-    # I think this is old code:
 
     # Step 2: categorical, first two digits, find mode, dummies:
     # This isn't ready because doesn't find the mode
@@ -320,8 +327,8 @@ def prepare_train_test():
     #     test = create_dummies_test(test, col, categories)
     
 
-    train_data.drop(columns=['id'], inplace=True)
-    test_data.drop(columns=['id'], inplace=True)
+    # train_data.drop(columns=['id'], inplace=True)
+    # test_data.drop(columns=['id'], inplace=True)
 
     return train_data, test_data, test_ids
 
