@@ -18,10 +18,10 @@ def main():
               'Forest': RandomForestRegressor(max_depth=2)
               }
 
-    parameters_grid = {'Tree': {'max_depth': [5, 10]},#, 20, 30]},
-                       'Lasso': {'alpha': [0.01, 0.05]},#, 0.075, 0.1]},
-                       'Ridge': {'alpha': [0.01, 0.05]},#, 0.075, 0.1]},
-                       'Forest': {'max_depth': [5, 10]}#, 20, 30]}
+    parameters_grid = {'Tree': {'max_depth': [10, 20, 50]},#, 20, 30]},
+                       'Lasso': {'alpha': [0.1, 0.5, 1]},#, 0.075, 0.1]},
+                       'Ridge': {'alpha': [0.1, 0.5, 1, 10]},#, 0.075, 0.1]},
+                       'Forest': {'max_depth': [10, 20]}#, 20, 30]}
                        }
 
     outcome = 'label'

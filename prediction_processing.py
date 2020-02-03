@@ -12,7 +12,7 @@ def read(file):
     '''
     Read in training data.
     '''
-    df = pd.read_csv(file).head(200)
+    df = pd.read_csv(file)#.head(200)
 
     return df
 
@@ -105,10 +105,12 @@ def expand_column_names(train, all_variables):
     col_list: list of all variables and intervals of interest
     '''
     lst = []
+    print(all_variables)
+
     for var in all_variables:
         if len(var) == 1:
             cols = list(train.loc[:, var].columns)
-        else:
+        else: #Range
             var0 = var[0]
             var1 = var[1]
             cols = list(train.loc[:, var0:var1].columns)
@@ -118,15 +120,29 @@ def expand_column_names(train, all_variables):
 
 def discretize_columns(train_data, test_data, columns_to_discretize):
 
+    print("bins_")
     for c in columns_to_discretize:
         
-        print(train_data[c])
+        if(train_data[c].min()==-1 and train_data[c].max()==-1):
+            break
 
+        #I dont want -1 values to be set into a bin
+        train_data[c].replace(-1, np.nan, inplace=True)      
+
+        bins_ = [train_data[c].min(), train_data[c].quantile(.25), train_data[c].quantile(.5), train_data[c].quantile(.75), train_data[c].max()+1]
+
+        print(c)
+
+        print(bins_)
         #We use qcut instead of cut because of outliers (if not, in case of high outlieres, almost all datapoints end up in lowest bin and none in the middle ones)
-        train_data[c+'_discrete'], bins = pd.qcut(train_data[c], 5, labels=['low', 'medium_low', 'medium', 'medium_high', 'high'], retbins=True, duplicates='drop')
+        train_data[c+'_discrete'], bins = pd.cut(train_data[c], bins = bins_, duplicates='drop', retbins=True) # 
+        #labels=['low', 'medium_low', 'medium_high', 'high']
 
+        # print(train_data[c+'_discrete'].head(5))
+        # print("a")
+        # print(bins)
         #Use same bins of train to discretize on test
-        test_data[c+'_discrete'] = pd.cut(test_data[c], bins=bins, labels=['low', 'medium_low', 'medium', 'medium_high', 'high'], include_lowest=True)
+        test_data[c+'_discrete'] = pd.cut(test_data[c], bins=bins_, include_lowest=True, duplicates='drop')#labels=['low', 'medium_low', 'medium', 'medium_high', 'high']
 
     return train_data, test_data
 
@@ -160,6 +176,21 @@ def find_mode_per_year(data, all_variables_list):
 
     return data, new_cols
 
+def drop_columns_without_variance(train_data):#, test_data):
+    
+    dropped_columns = []
+    for c in train_data.columns:
+        if(train_data.loc[:,c].var() == 0.0):
+            print (c)
+            print(train_data.loc[:,c].var())
+            print(train_data[c].min())
+            print(train_data[c].max())
+
+            # dropped_columns.append(c)
+            # train_data.drop(columns=c, inplace=True)
+            # test_data.drop(columns=c, inplace=True)
+
+    return train_data#, test_data
 
 def prepare_train_test():
     '''
@@ -188,13 +219,17 @@ def prepare_train_test():
     #Convert all negatives values to -1, np.nan
     train_data.replace([-1,-2,-3,-4,-5], -1, inplace=True)
 
+    print("dropping columns without variance..")
+    # print(train_data.shape)
+    # #train_data, test_data = 
+    # drop_columns_without_variance(train_data)#, test_data)
+    # print(train_data.shape)
+
     #Discretize continuous variables
     range_columns_to_discretize = get_range_columns_for_features('pure_continuous')
     columns_to_discretize = expand_column_names(train_data, range_columns_to_discretize)
-
-    # train_data, test_data = discretize_columns(train_data, test_data, columns_to_discretize)
+    train_data, test_data = discretize_columns(train_data, test_data, columns_to_discretize)
     
-
 
     # Step 1: categorical, no mode, dummies 
     print("Categorical, no mode, dummies")
@@ -207,32 +242,41 @@ def prepare_train_test():
         test_data = create_dummies_test(test_data, col, categories)
 
     # Step 2: categorical, mode, dummies
-    all_variables = [['E5011701', 'E5012905'], ['E5031701', 'E5032903']]
-    all_variables_list = return_column_names(train, all_variables)
-    train, new_cols = find_mode_per_year(train, all_variables_list)
+
+    print("Categorical, mode, dummies")
+    range_columns_categorical_and_mode = get_range_columns_for_features('categorical_find_mode')
+    columns_categorical_and_mode = expand_column_names(train_data, range_columns_categorical_and_mode)
+
+    train_data, new_cols = find_mode_per_year(train_data, columns_categorical_and_mode)
+    test_data, new_cols = find_mode_per_year(test_data, columns_categorical_and_mode)
 
     for col in new_cols:
-        train, categories = create_dummies(train, col)
-        test = create_dummies_test(test, col, categories)
+        train, categories = create_dummies(train_data, col)
+        test = create_dummies_test(test_data, col, categories)
 
-    '''
+
+
+
+
+    # I think this is old code:
+
     # Step 2: categorical, first two digits, find mode, dummies:
     # This isn't ready because doesn't find the mode
 
-    print("Categorical, no mode, dummies")
-    all_variables = [a, b, c, d, e] ## this is where we put our list of vars
-    all_variables_list = return_column_names(train, all_variables) 
+    # print("Categorical, no mode, dummies")
+    # all_variables = [a, b, c, d, e] ## this is where we put our list of vars
+    # all_variables_list = return_column_names(train, all_variables) 
 
-    for col in school_type_cols:
-        train[col] = train[col].apply(lambda x: (x // 10 **
-                                     (int(math.log(x, 10)) - 1)
-                                     if x > 0 else x))
-        test[col] = test[col].apply(lambda x: (x // 10 **
-                                    (int(math.log(x, 10)) - 1)
-                                    if x > 0 else x))
-        train, categories = create_dummies(train, col)
-        test = create_dummies_test(test, col, categories)
-    '''
+    # for col in school_type_cols:
+    #     train[col] = train[col].apply(lambda x: (x // 10 **
+    #                                  (int(math.log(x, 10)) - 1)
+    #                                  if x > 0 else x))
+    #     test[col] = test[col].apply(lambda x: (x // 10 **
+    #                                 (int(math.log(x, 10)) - 1)
+    #                                 if x > 0 else x))
+    #     train, categories = create_dummies(train, col)
+    #     test = create_dummies_test(test, col, categories)
+    
 
     train_data.drop(columns=['id'], inplace=True)
     test_data.drop(columns=['id'], inplace=True)
