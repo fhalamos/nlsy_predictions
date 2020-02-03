@@ -1,5 +1,3 @@
-To run predictions:
-
 # Files contained in folder:
 
 * config.yaml: Specifies features being used
