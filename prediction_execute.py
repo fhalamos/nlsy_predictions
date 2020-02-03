@@ -10,6 +10,7 @@ from sklearn.linear_model import Ridge, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
 
+
 def main():
 
     models = {'Tree': DecisionTreeRegressor(max_depth=10),
@@ -18,17 +19,15 @@ def main():
               'Forest': RandomForestRegressor(max_depth=2)
               }
 
-    parameters_grid = {'Tree': {'max_depth': [10, 20, 50]},#, 20, 30]},
-                       'Lasso': {'alpha': [0.1, 0.5, 1]},#, 0.075, 0.1]},
-                       'Ridge': {'alpha': [0.1, 0.5, 1, 10]},#, 0.075, 0.1]},
-                       'Forest': {'max_depth': [10, 20]}#, 20, 30]}
+    parameters_grid = {'Tree': {'max_depth': [10, 20, 50, 100]},#, 20, 30]},
+                       'Lasso': {'alpha': [0.01, 0.1, 0.5, 1, 10]},#, 0.075, 0.1]},
+                       'Ridge': {'alpha': [0.01, 0.1, 0.5, 1, 10]},#, 0.075, 0.1]},
+                       'Forest': {'max_depth': [10, 20, 50, 100]}
                        }
 
     outcome = 'label'
 
     train, test, test_ids = process.go()
-
-    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA ---------- find model!")
 
     best_model = loop.find_best_model(models, parameters_grid, train, outcome)
 

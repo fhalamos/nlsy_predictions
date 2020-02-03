@@ -23,6 +23,13 @@ to_drop: #Variables To Drop
   #pending_variables_to_check: ['R0490000','U0958300']
 
 
+alcohol_variables_categorical:
+    percent_of_peers_who_get_drunk: ['R0070500']
+alcohol_variables_continuous:
+    Percent_chance_you_get_drunk_next_year_1997: ['R0514300']
+    Percent_chance_you_get_drunk_next_year_2000:  ['R5155800']
+    Percent_chance_you_get_drunk_next_five_years: ['R5156900']
+
 pure_continuous: # Continuous + DO NOT Find Mode Per Year + Dummies Negative Values and Imputation OR Continuous Bins:
   year_attended_each_grade : ['E5220100', 'E5221200']
   Percent_chance_you_get_drunk_next_year_1997 : ['R0514300']

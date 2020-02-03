@@ -12,7 +12,7 @@ def read(file):
     '''
     Read in training data.
     '''
-    df = pd.read_csv(file)#.head(200)
+    df = pd.read_csv(file)#.head(20)
 
     return df
 
@@ -105,7 +105,6 @@ def expand_column_names(train, all_variables):
     col_list: list of all variables and intervals of interest
     '''
     lst = []
-    print(all_variables)
 
     for var in all_variables:
         if len(var) == 1:
@@ -120,20 +119,18 @@ def expand_column_names(train, all_variables):
 
 def discretize_columns(train_data, test_data, columns_to_discretize):
 
-    print("bins_")
+    new_columns =[]
+
     for c in columns_to_discretize:
         
-        if(train_data[c].min()==-1 and train_data[c].max()==-1):
-            break
-
         #I dont want -1 values to be set into a bin
         train_data[c].replace(-1, np.nan, inplace=True)      
 
         bins_ = [train_data[c].min(), train_data[c].quantile(.25), train_data[c].quantile(.5), train_data[c].quantile(.75), train_data[c].max()+1]
 
-        print(c)
+        # print(c)
 
-        print(bins_)
+        # print(bins_)
         #We use qcut instead of cut because of outliers (if not, in case of high outlieres, almost all datapoints end up in lowest bin and none in the middle ones)
         train_data[c+'_discrete'], bins = pd.cut(train_data[c], bins = bins_, duplicates='drop', retbins=True) # 
         #labels=['low', 'medium_low', 'medium_high', 'high']
@@ -144,7 +141,15 @@ def discretize_columns(train_data, test_data, columns_to_discretize):
         #Use same bins of train to discretize on test
         test_data[c+'_discrete'] = pd.cut(test_data[c], bins=bins_, include_lowest=True, duplicates='drop')#labels=['low', 'medium_low', 'medium', 'medium_high', 'high']
 
-    return train_data, test_data
+        #Drop original variables
+        train_data.drop(columns=c, inplace=True)
+        test_data.drop(columns=c, inplace=True)
+
+
+        new_columns.append(c+'_discrete')
+
+
+    return train_data, test_data, new_columns
 
 def find_mode_per_year(data, all_variables_list):
     '''
@@ -202,12 +207,12 @@ def prepare_train_test():
     test_data = read('nlsy_test_set.csv')
 
     print("Cleaning...")
+    
     train_data = format_id_and_label_columns(train_data)
     test_data = format_id_and_label_columns(test_data)
 
     train_data = drop_nonresponse_y(train_data)
     test_ids = test_data.id.to_list()
-
 
     #Drop useless columns
     range_columns_to_drop = get_range_columns_for_features('to_drop')
@@ -218,41 +223,78 @@ def prepare_train_test():
 
     #Convert all negatives values to -1, np.nan
     train_data.replace([-1,-2,-3,-4,-5], -1, inplace=True)
+    test_data.replace([-1,-2,-3,-4,-5], -1, inplace=True)
 
-    print("dropping columns without variance..")
-    # print(train_data.shape)
-    # #train_data, test_data = 
-    # drop_columns_without_variance(train_data)#, test_data)
-    # print(train_data.shape)
 
-    #Discretize continuous variables
-    range_columns_to_discretize = get_range_columns_for_features('pure_continuous')
-    columns_to_discretize = expand_column_names(train_data, range_columns_to_discretize)
-    train_data, test_data = discretize_columns(train_data, test_data, columns_to_discretize)
-    
 
-    # Step 1: categorical, no mode, dummies 
-    print("Categorical, no mode, dummies")
-    range_columns_for_features = get_range_columns_for_features('pure_categorical')#[a, b, c, d, e] ## this is where we put our list of vars
+    #Get alcohol variables
+    categorical_alcohol_variables = expand_column_names(train_data, get_range_columns_for_features('alcohol_variables_categorical'))
+    continuous_alcohol_variables = expand_column_names(train_data, get_range_columns_for_features('alcohol_variables_continuous'))
+        
+    #Get other categorical variables
+    range_categorical_variables = get_range_columns_for_features('pure_categorical')
+    categorical_variables = [c for c in expand_column_names(train_data, range_categorical_variables) if c not in categorical_alcohol_variables]
 
-    columns_for_features = expand_column_names(train_data, range_columns_for_features)
+    #Get other continuous variables
+    range_continuous_variables = get_range_columns_for_features('pure_continuous')
+    continuous_variables = [c for c in expand_column_names(train_data, range_continuous_variables) if c not in continuous_alcohol_variables]
 
-    for col in columns_for_features:
+    #Get categorical variables that need mode computation
+
+    range_categorical_and_mode_variables = get_range_columns_for_features('categorical_find_mode')
+    categorical_and_mode_variables = expand_column_names(train_data, range_categorical_and_mode_variables)
+
+    #Reducing DFs to only certain variables
+    all_variables_of_interest = \
+        categorical_alcohol_variables + \
+        continuous_alcohol_variables + \
+        ['id'] + \
+        categorical_variables + \
+        continuous_variables + \
+        categorical_and_mode_variables
+
+    train_data = train_data[all_variables_of_interest+['label']]
+    test_data = test_data[all_variables_of_interest]
+
+
+    #Create dummies for categorical data
+    for col in categorical_alcohol_variables + categorical_variables:
         train_data, categories = create_dummies(train_data, col)
         test_data = create_dummies_test(test_data, col, categories)
 
-    # Step 2: categorical, mode, dummies
 
-    print("Categorical, mode, dummies")
-    range_columns_categorical_and_mode = get_range_columns_for_features('categorical_find_mode')
-    columns_categorical_and_mode = expand_column_names(train_data, range_columns_categorical_and_mode)
-
-    train_data, new_cols = find_mode_per_year(train_data, columns_categorical_and_mode)
-    test_data, new_cols = find_mode_per_year(test_data, columns_categorical_and_mode)
+    #Create dummies for categorical that need mode computation
+    train_data, new_cols = find_mode_per_year(train_data, categorical_and_mode_variables)
+    test_data, new_cols = find_mode_per_year(test_data, categorical_and_mode_variables)
 
     for col in new_cols:
-        train, categories = create_dummies(train_data, col)
-        test = create_dummies_test(test_data, col, categories)
+        train_data, categories = create_dummies(train_data, col)
+        test_data = create_dummies_test(test_data, col, categories)
+
+
+
+    print(train_data.shape)
+    print(test_data.shape)
+
+
+
+    # #Discretize numerical alcoholic variables - I do not observe impruevements when doing this so will avoid it for now on..
+
+    # print(train_data.shape)
+    # print(train_data.columns)
+    # train_data, test_data, new_discrete_columns = discretize_columns(train_data, test_data, continuous_alcohol_variables)
+    # print(train_data.shape)
+    # print(train_data.columns)
+    # train_data.replace(np.nan, -1, inplace=True)
+    # test_data.replace(np.nan, -1, inplace=True)
+    # for col in new_discrete_columns:
+    #     train_data, categories = create_dummies(train_data, col)
+    #     test_data = create_dummies_test(test_data, col, categories)
+
+    # print(train_data.shape)
+    # print(train_data.columns)    
+
+
 
 
 

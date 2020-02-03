@@ -40,7 +40,7 @@ def find_best_model(models, parameters_grid, x_train, outcome_label):
             # Change signs because scoring is negative MSE
             scores = -cross_val_score(estimator=model,
                                       X=x_train.drop(outcome_label, axis=1),
-                                      y=x_train[[outcome_label]], # series or dataframe preferred?
+                                      y=x_train[outcome_label], # series or dataframe preferred?
                                       cv=5,
                                       scoring='neg_mean_squared_error')
             mse = scores.mean()
